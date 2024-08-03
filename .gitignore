@@ -19,3 +19,7 @@ gradle-app.setting
 .project
 # JDT-specific (Eclipse Java Development Tools)
 .classpath
+
+# Well, no one wants the .idea isn't it?
+.idea
+run/

@@ -1,0 +1,42 @@
+modLoader = "javafml"
+loaderVersion = "[47,)"
+#issueTrackerURL = ""
+license = "MIT License"
+
+[[mods]]
+modId = "gain_friendship_from_melodies"
+version = "${version}"
+displayName = "Gain Friendship From Melodies"
+authors = "LyquidQrystal"
+description = '''
+Enjoy the music with your Cobblemon!
+'''
+#logoFile = ""
+
+[[dependencies.gain_friendship_from_melodies]]
+modId = "forge"
+mandatory = true
+versionRange = "[47,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.gain_friendship_from_melodies]]
+modId = "minecraft"
+mandatory = true
+versionRange = "[1.20.1,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.gain_friendship_from_melodies]]
+modId = "cobblemon"
+mandatory = true
+versionRange = "[1.5.0,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.gain_friendship_from_melodies]]
+modId = "immersive_melodies"
+mandatory = true
+versionRange = "[0.3.0,)"
+ordering = "NONE"
+side = "BOTH"
