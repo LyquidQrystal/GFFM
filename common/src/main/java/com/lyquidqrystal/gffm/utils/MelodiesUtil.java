@@ -1,9 +1,9 @@
 package com.lyquidqrystal.gffm.utils;
 
+import com.lyquidqrystal.gffm.GainFriendshipFromMelodies;
 import immersive_melodies.client.MelodyProgress;
 import immersive_melodies.client.MelodyProgressManager;
 import immersive_melodies.item.InstrumentItem;
-import immersive_melodies.resources.Melody;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
@@ -20,7 +20,7 @@ public class MelodiesUtil {
         if (player != null) {//Game will crash on exit without this line(Fabric only)
             ItemStack itemStack = getMainHand ? player.getMainHandItem() : player.getOffhandItem();
 
-            if (itemStack.getItem() instanceof InstrumentItem ii) {
+            if (itemStack.getItem() instanceof InstrumentItem) {
                 return itemStack;
             }
         }
@@ -36,9 +36,9 @@ public class MelodiesUtil {
     }
 
     public static ItemStack getInstrumentItemStack_Final(Player player) {
-        boolean shouldCheckOffHand = false;//todo replace it with a config value
+        boolean shouldCheckOffHand = GainFriendshipFromMelodies.commonConfig().can_use_offhand_item;
         ItemStack itemStack = getInstrumentItemStack(player, true);
-        if (shouldCheckOffHand && itemStack != null) {
+        if (shouldCheckOffHand && itemStack == null) {
             itemStack = getInstrumentItemStack(player, false);
         }
         return itemStack;
@@ -62,14 +62,22 @@ public class MelodiesUtil {
 
     public static long getProgress(Player player) {
         MelodyProgress melodyProgress = getMelodyProgress(player);
+        return getProgress(melodyProgress);
+    }
+
+    public static long getLength(Player player) {
+        MelodyProgress melodyProgress = getMelodyProgress(player);
+        return getLength(melodyProgress);
+    }
+
+    public static long getProgress(MelodyProgress melodyProgress) {
         if (melodyProgress == null) {
             return -1;
         }
         return melodyProgress.getTime();
     }
 
-    public static long getLength(Player player) {
-        MelodyProgress melodyProgress = getMelodyProgress(player);
+    public static long getLength(MelodyProgress melodyProgress) {
         if (melodyProgress == null) {
             return -1;
         }

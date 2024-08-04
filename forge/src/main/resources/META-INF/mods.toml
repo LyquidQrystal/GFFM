@@ -11,7 +11,7 @@ authors = "LyquidQrystal"
 description = '''
 Enjoy the music with your Cobblemon!
 '''
-#logoFile = ""
+logoFile = "icon.png"
 
 [[dependencies.gain_friendship_from_melodies]]
 modId = "forge"
