@@ -3,15 +3,15 @@
   "id": "gain_friendship_from_melodies",
   "version": "${version}",
   "name": "Gain Friendship From Melodies",
-  "description": "This is an example description! Tell everyone what your mod is about!",
+  "description": "Enjoy the music with your Cobblemon!",
   "authors": [
-    "Me!"
+    "LyquidQrystal"
   ],
   "contact": {
     "homepage": "https://fabricmc.net/",
-    "sources": "https://github.com/FabricMC/fabric-example-mod"
+    "sources": "https://github.com/LyquidQrystal/GFFM"
   },
-  "license": "CC0-1.0",
+  "license": "MIT License",
   "icon": "assets/gain_friendship_from_melodies/icon.png",
   "environment": "*",
   "entrypoints": {
@@ -29,8 +29,9 @@
     "fabricloader": ">=0.16.0",
     "minecraft": "~1.20.1",
     "java": ">=17",
-    "architectury": ">=9.2.14",
-    "fabric-api": "*"
+    "fabric-api": "*",
+    "immersive_melodies": ">=0.3.0",
+    "cobblemon": ">=1.5.2"
   },
   "suggests": {
     "another-mod": "*"

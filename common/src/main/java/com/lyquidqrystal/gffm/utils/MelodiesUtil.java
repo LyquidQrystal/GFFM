@@ -17,10 +17,12 @@ public class MelodiesUtil {
     }
 
     public static ItemStack getInstrumentItemStack(Player player, boolean getMainHand) {
-        ItemStack itemStack = getMainHand ? player.getMainHandItem() : player.getOffhandItem();
+        if (player != null) {//Game will crash on exit without this line(Fabric only)
+            ItemStack itemStack = getMainHand ? player.getMainHandItem() : player.getOffhandItem();
 
-        if (itemStack.getItem() instanceof InstrumentItem ii) {
-            return itemStack;
+            if (itemStack.getItem() instanceof InstrumentItem ii) {
+                return itemStack;
+            }
         }
         return null;
     }

@@ -11,6 +11,7 @@ public final class GainFriendshipFromMelodiesFabric implements ModInitializer {
         // Proceed with mild caution.
 
         // Run our common setup.
+        GainFriendshipFromMelodies.LOGGER.info("GFFM Fabric started");
         GainFriendshipFromMelodies.init();
     }
 }
