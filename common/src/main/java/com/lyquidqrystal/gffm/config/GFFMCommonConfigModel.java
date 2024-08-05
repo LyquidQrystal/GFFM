@@ -13,6 +13,8 @@ public class GFFMCommonConfigModel implements ConfigData {
     public int friendship_increment_value = 2;
     @Comment("The time needed to get friendship")
     public int increase_friendship_cooldown = 10;
+    @Comment("The pokemon should be within rhe distance to gain friendship.")
+    public int distance_limit=16;
     @Comment("If your Pokemon will remind you the song is coming to an end by crying.")
     public boolean should_warn = true;
     @Comment("If you can use the instrument in the offhand to increase the friendship")
