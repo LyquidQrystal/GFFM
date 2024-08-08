@@ -1,6 +1,7 @@
 package com.lyquidqrystal.gffm;
 
 import com.lyquidqrystal.gffm.config.GFFMCommonConfigModel;
+import com.lyquidqrystal.gffm.items.GFFMItems;
 import me.shedaniel.autoconfig.AutoConfig;
 import me.shedaniel.autoconfig.serializer.JanksonConfigSerializer;
 import org.slf4j.Logger;
@@ -16,6 +17,7 @@ public final class GainFriendshipFromMelodies {
         AutoConfig.register(GFFMCommonConfigModel.class, JanksonConfigSerializer::new);
         COMMON_CONFIG = AutoConfig.getConfigHolder(GFFMCommonConfigModel.class).getConfig();
         LOGGER.info("GFFM Initiating.");
+        GFFMItems.bootstrap();
     }
     public static GFFMCommonConfigModel commonConfig(){
         return COMMON_CONFIG;

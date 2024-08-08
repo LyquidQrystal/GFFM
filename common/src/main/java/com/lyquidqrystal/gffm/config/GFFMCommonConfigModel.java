@@ -14,9 +14,13 @@ public class GFFMCommonConfigModel implements ConfigData {
     @Comment("The time needed to get friendship")
     public int increase_friendship_cooldown = 10;
     @Comment("The pokemon should be within rhe distance to gain friendship.")
-    public int distance_limit=16;
+    public int distance_limit = 16;
     @Comment("If your Pokemon will remind you the song is coming to an end by crying.")
     public boolean should_warn = true;
     @Comment("If you can use the instrument in the offhand to increase the friendship")
     public boolean can_use_offhand_item = true;
+    @Comment("Status that can be cured by the music(persistent status only)")
+    public String[] curable_status={
+            "sleep"
+    };
 }

@@ -1,13 +1,19 @@
 package com.lyquidqrystal.gffm.utils;
 
 import com.lyquidqrystal.gffm.GainFriendshipFromMelodies;
+import immersive_melodies.Items;
 import immersive_melodies.client.MelodyProgress;
 import immersive_melodies.client.MelodyProgressManager;
 import immersive_melodies.item.InstrumentItem;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class MelodiesUtil {
+    public static final String MOD_ID = "immersive_melodies";
+
     public static InstrumentItem getInstrumentItem(Player player, boolean getMainHand) {
         ItemStack itemStack = getInstrumentItemStack(player, getMainHand);
         if (itemStack != null && itemStack.getItem() instanceof InstrumentItem ii) {
