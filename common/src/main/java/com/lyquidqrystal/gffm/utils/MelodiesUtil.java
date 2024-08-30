@@ -101,18 +101,20 @@ public class MelodiesUtil {
     Supplier<Item> TINY_DRUM = register(Common.MOD_ID, "tiny_drum", 300, new Vector3f(0.0f, 0.25f, 0.5f));
      */
     public static InstrumentItem getInstrumentItemTemplate(String name){
-        Item item;
-        switch (name){
-            case "bagpipe":item=Items.BAGPIPE.get();
-            case "didgeridoo":item=Items.DIDGERIDOO.get();
-            case "flute": item=Items.FLUTE.get();
-            case "lute":item=Items.LUTE.get();
-            case "piano":item=Items.PIANO.get();
-            case "triangle":item=Items.TRIANGLE.get();
-            case "trumpet":item=Items.TRUMPET.get();
-            case "tiny_drum":item=Items.TINY_DRUM.get();
-            default:item=null;
+        if(name==null){
+            return null;
         }
+        Item item = switch (name) {
+            case "bagpipe" -> Items.BAGPIPE.get();
+            case "didgeridoo" -> Items.DIDGERIDOO.get();
+            case "flute" -> Items.FLUTE.get();
+            case "lute" -> Items.LUTE.get();
+            case "piano" -> Items.PIANO.get();
+            case "triangle" -> Items.TRIANGLE.get();
+            case "trumpet" -> Items.TRUMPET.get();
+            case "tiny_drum" -> Items.TINY_DRUM.get();
+            default -> null;
+        };
         return (InstrumentItem) item;
     }
 }

@@ -23,4 +23,15 @@ public class GFFMCommonConfigModel implements ConfigData {
     public String[] curable_status={
             "sleep"
     };
+    @Comment("Rules to add instrument sound to the Pokemon")
+    public String[] distribution_rules={
+            "flute|any|any|any|any|any|grasswhistle|100",
+            "lute|Kricketune|any|any|any|any|any|100",
+            "tiny_drum|Snorlax|any|any|any|any|any|100",
+            "tiny_drum|Rillaboom|any|any|any|any|any|100",
+            "tiny_drum|any|any|any|any|any|bellydrum|100",
+            "triangle|any|any|any|any|any|healbell|100",
+            "triangle|Chingling|any|any|any|any|any|100",
+            "triangle|Chimecho|any|any|any|any|any|100"
+    };
 }

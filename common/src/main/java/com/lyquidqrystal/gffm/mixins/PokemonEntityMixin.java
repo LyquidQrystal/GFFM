@@ -3,8 +3,10 @@ package com.lyquidqrystal.gffm.mixins;
 import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
 import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.lyquidqrystal.gffm.GainFriendshipFromMelodies;
+import com.lyquidqrystal.gffm.config.GFFMCommonConfigModel;
 import com.lyquidqrystal.gffm.utils.ClientUtil;
 import com.lyquidqrystal.gffm.utils.MelodiesUtil;
+import com.lyquidqrystal.gffm.utils.PokemonChecker;
 import immersive_melodies.Common;
 import immersive_melodies.Sounds;
 import immersive_melodies.client.MelodyProgress;
@@ -32,6 +34,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 @Mixin(PokemonEntity.class)
@@ -55,17 +58,18 @@ public abstract class PokemonEntityMixin extends Mob {
     private int lastNoteIndex;
     private LivingEntity cliendsideCachedOwner;
     private static final EntityDataAccessor<Integer> DATA_ID_OWNER;
-
+    private static final EntityDataAccessor<String> DATA_INSTRUMENT_NAME;
 
     static {
         DATA_ID_OWNER = SynchedEntityData.defineId(PokemonEntityMixin.class, EntityDataSerializers.INT);
+        DATA_INSTRUMENT_NAME = SynchedEntityData.defineId(PokemonEntityMixin.class, EntityDataSerializers.STRING);
     }
 
     protected PokemonEntityMixin(EntityType<? extends Mob> entityType, Level level) {
         super(entityType, level);
         gain_friendship_from_melodies$hasWarned = false;
         gain_friendship_from_melodies$musicState = 0;
-        lastNoteIndex=0;
+        lastNoteIndex = 0;
     }
 
     @Unique
@@ -76,6 +80,7 @@ public abstract class PokemonEntityMixin extends Mob {
     @Inject(method = "defineSynchedData", at = @At("TAIL"))
     private void defineExtraSynchedData(CallbackInfo info) {
         entityData.define(DATA_ID_OWNER, -1);//This doesn't need to be saved so there will be no other injections
+        entityData.define(DATA_INSTRUMENT_NAME, "");
     }
 
     @Inject(method = "tick", at = @At("HEAD"))
@@ -99,6 +104,15 @@ public abstract class PokemonEntityMixin extends Mob {
         if (this.getPokemon().isPlayerOwned() && !isBattling()) {
             Player player = this.getPokemon().getOwnerPlayer();//The game crashes if the mixin extends the TamableAnimal class, so it might be the easiest way to get the owner.Attention:this is a ServerPlayer.
             gain_friendship_from_melodies$setOwnerId(-1);
+            if (getInstrumentName().isEmpty()) {
+                for (String rule : GainFriendshipFromMelodies.commonConfig().distribution_rules) {
+                    var tmp = PokemonChecker.match(rule, getPokemon());//TODO Rewrite it with entityData
+                    if (!Objects.equals(tmp, "")) {
+                        setInstrumentName(tmp);
+                        break;
+                    }
+                }
+            }
             if (player != null && this.level().dimension() == player.level().dimension() && this.distanceTo(player) < GainFriendshipFromMelodies.commonConfig().distance_limit && !(getPokemon().getAbility().getName().equals("soundproof") && gain_friendship_from_melodies$shouldCheckSoundProof())) {
                 MelodyProgress melodyProgress = MelodiesUtil.getMelodyProgress(player);
                 long progress = MelodiesUtil.getProgress(melodyProgress);
@@ -140,10 +154,10 @@ public abstract class PokemonEntityMixin extends Mob {
 
     @Unique
     private void gain_friendship_from_melodies$imitate(Player player) {
-        if (!level().isClientSide) {
+        InstrumentItem template = MelodiesUtil.getInstrumentItemTemplate(getInstrumentName());//TODO use the config to allow pokemon use different instrument
+        if (!level().isClientSide || template == null) {
             return;
         }
-        InstrumentItem template=MelodiesUtil.getInstrumentItemTemplate("flute");//TODO use the config to allow pokemon use different instrument
         Sounds.Instrument sound = ((InstrumentItemAccessor) template).getSound();
         var InstrumentSustain = ((InstrumentItemAccessor) template).getSustain();
         var offset = ((InstrumentItemAccessor) template).getOffset();
@@ -158,10 +172,10 @@ public abstract class PokemonEntityMixin extends Mob {
             for (int track = 0; track < melody.getTracks().size(); track++) {
                 int lastIndex = progress.getLastIndex(track);
                 List<Note> notes = melody.getTracks().get(track).getNotes();
-                if(lastIndex>0){
-                    lastIndex-=1;
+                if (lastIndex > 0) {
+                    lastIndex -= 1;
                 }
-                if(lastIndex==lastNoteIndex||lastIndex>notes.size()-1){
+                if (lastIndex == lastNoteIndex || lastIndex > notes.size() - 1) {
                     return;//The note is played or the melody is changed.
                 }
                 Note note = notes.get(lastIndex);
@@ -182,7 +196,7 @@ public abstract class PokemonEntityMixin extends Mob {
                                 sound.get(octave), SoundSource.NEUTRAL,
                                 volume, pitch, length, sustain,
                                 note.getTime() - progress.getTime(), this);
-                        lastNoteIndex=lastIndex;
+                        lastNoteIndex = lastIndex;
                         // particle
                         if (!Common.soundManager.isFirstPerson(this)) {
                             double x = Math.sin(-this.yBodyRot / 180.0 * Math.PI);
@@ -216,5 +230,15 @@ public abstract class PokemonEntityMixin extends Mob {
     @Unique
     private void gain_friendship_from_melodies$setOwnerId(Integer id) {
         entityData.set(DATA_ID_OWNER, id);
+    }
+
+    @Unique
+    private String getInstrumentName() {
+        return entityData.get(DATA_INSTRUMENT_NAME);
+    }
+
+    @Unique
+    private void setInstrumentName(String name) {
+        entityData.set(DATA_INSTRUMENT_NAME, name);
     }
 }
