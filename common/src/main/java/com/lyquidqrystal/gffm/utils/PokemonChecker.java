@@ -11,32 +11,32 @@ import java.util.regex.Pattern;
 
 public class PokemonChecker {
     public static boolean checkName(String name, Pokemon pokemon) {
-        if (name.equals("any")) {
+        if (name.equalsIgnoreCase("any")) {
             return true;
         }
-        return pokemon.getSpecies().getName().equals(name);
+        return pokemon.getSpecies().getName().equalsIgnoreCase(name);
     }
 
     public static boolean checkNature(String natureName, Pokemon pokemon) {
-        if (natureName.equals("any")) {
+        if (natureName.equalsIgnoreCase("any")) {
             return true;
         }
-        return pokemon.getNature().getDisplayName().equals("cobblemon.nature." + natureName);
+        return pokemon.getNature().getDisplayName().equalsIgnoreCase("cobblemon.nature." + natureName);
     }
 
     public static boolean checkAbility(String abilityName, Pokemon pokemon) {
-        if (abilityName.equals("any")) {
+        if (abilityName.equalsIgnoreCase("any")) {
             return true;
         }
-        return pokemon.getAbility().getName().equals(abilityName);
+        return pokemon.getAbility().getName().equalsIgnoreCase(abilityName);
     }
 
     public static boolean checkMove(String moveName, Pokemon pokemon) {
-        if (moveName.equals("any")) {
+        if (moveName.equalsIgnoreCase("any")) {
             return true;
         }
         for (Move move : pokemon.getMoveSet().getMoves()) {
-            if (move.getName().equals(moveName)) {
+            if (move.getName().equalsIgnoreCase(moveName)) {
                 return true;
             }
         }
@@ -52,22 +52,21 @@ public class PokemonChecker {
     }
 
     public static boolean checkGender(String gender, Pokemon pokemon) {
-        if (gender.equals("any")) {
+        if (gender.equalsIgnoreCase("any")) {
             return true;
         }
-        return pokemon.getGender().name().equals(gender);
+        return pokemon.getGender().name().equalsIgnoreCase(gender);
     }
 
     public static boolean checkRegionalForm(String formName, Pokemon pokemon) {
-        if (formName.equals("any")) {
+        if (formName.equalsIgnoreCase("any")) {
             return true;
         }
-        return pokemon.getForm().getName().equals(formName);
+        return pokemon.getForm().getName().equalsIgnoreCase(formName);
     }
-
     public static String match(String rule, Pokemon pokemon) {
         Pattern pattern = Pattern.compile("([^|]+)\\|([^|]+)\\|([^|]+)\\|([^|]+)\\|([^|]+)\\|([^|]+)\\|([^|]+)\\|([^|]+)");
-        Matcher matcher = pattern.matcher(rule);
+        Matcher matcher = pattern.matcher(rule.toLowerCase());
         String result = "";
         if (pokemon == null) {
             return result;
@@ -76,7 +75,7 @@ public class PokemonChecker {
             int friendshipValue = 0;
 
             String tmp = matcher.group(8);
-            if (Objects.equals(tmp, "any")) {
+            if (tmp.equalsIgnoreCase("any")) {
                 friendshipValue = -1;
             }else{
                 try{
@@ -101,12 +100,4 @@ public class PokemonChecker {
         }
         return result;
     }
-    /*
-    [16:33:00] [Server thread/INFO] [gain_friendship_from_melodies/]: flute
-[16:33:00] [Server thread/INFO] [gain_friendship_from_melodies/]: Raticate
-[16:33:00] [Server thread/INFO] [gain_friendship_from_melodies/]: cobblemon.nature.lonely
-[16:33:00] [Server thread/INFO] [gain_friendship_from_melodies/]: hustle
-[16:33:00] [Server thread/INFO] [gain_friendship_from_melodies/]: FEMALE
-[16:33:00] [Server thread/INFO] [gain_friendship_from_melodies/]: Alola
-     */
 }
