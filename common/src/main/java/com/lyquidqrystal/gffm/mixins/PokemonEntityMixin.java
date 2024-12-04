@@ -3,17 +3,21 @@ package com.lyquidqrystal.gffm.mixins;
 import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
 import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.lyquidqrystal.gffm.GainFriendshipFromMelodies;
-import com.lyquidqrystal.gffm.config.GFFMCommonConfigModel;
+import com.lyquidqrystal.gffm.interfaces.PokemonEntityInterface;
+import com.lyquidqrystal.gffm.net.MelodyInfoPacket;
 import com.lyquidqrystal.gffm.utils.ClientUtil;
 import com.lyquidqrystal.gffm.utils.MelodiesUtil;
 import com.lyquidqrystal.gffm.utils.PokemonChecker;
+import dev.architectury.networking.NetworkManager;
 import immersive_melodies.Common;
 import immersive_melodies.Sounds;
 import immersive_melodies.client.MelodyProgress;
 import immersive_melodies.item.InstrumentItem;
 import immersive_melodies.resources.Melody;
 import immersive_melodies.resources.Note;
+import io.netty.buffer.Unpooled;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -38,7 +42,7 @@ import java.util.Objects;
 import java.util.Set;
 
 @Mixin(PokemonEntity.class)
-public abstract class PokemonEntityMixin extends Mob {
+public abstract class PokemonEntityMixin extends Mob  implements PokemonEntityInterface {
     @Shadow
     public abstract Pokemon getPokemon();
 
@@ -59,10 +63,14 @@ public abstract class PokemonEntityMixin extends Mob {
     private LivingEntity cliendsideCachedOwner;
     private static final EntityDataAccessor<Integer> DATA_ID_OWNER;
     private static final EntityDataAccessor<String> DATA_INSTRUMENT_NAME;
+    private static final EntityDataAccessor<Long> MUSIC_PROGRESS;
+    private static final EntityDataAccessor<Long> MUSIC_LENGTH;
 
     static {
         DATA_ID_OWNER = SynchedEntityData.defineId(PokemonEntityMixin.class, EntityDataSerializers.INT);
         DATA_INSTRUMENT_NAME = SynchedEntityData.defineId(PokemonEntityMixin.class, EntityDataSerializers.STRING);
+        MUSIC_PROGRESS = SynchedEntityData.defineId(PokemonEntityMixin.class, EntityDataSerializers.LONG);
+        MUSIC_LENGTH = SynchedEntityData.defineId(PokemonEntityMixin.class, EntityDataSerializers.LONG);
     }
 
     protected PokemonEntityMixin(EntityType<? extends Mob> entityType, Level level) {
@@ -81,6 +89,8 @@ public abstract class PokemonEntityMixin extends Mob {
     private void defineExtraSynchedData(CallbackInfo info) {
         entityData.define(DATA_ID_OWNER, -1);//This doesn't need to be saved so there will be no other injections
         entityData.define(DATA_INSTRUMENT_NAME, "");
+        entityData.define(MUSIC_PROGRESS, 0L);
+        entityData.define(MUSIC_LENGTH,0L);
     }
 
     @Inject(method = "tick", at = @At("HEAD"))
@@ -114,9 +124,18 @@ public abstract class PokemonEntityMixin extends Mob {
                 }
             }
             if (player != null && this.level().dimension() == player.level().dimension() && this.distanceTo(player) < GainFriendshipFromMelodies.commonConfig().distance_limit && !(getPokemon().getAbility().getName().equals("soundproof") && gain_friendship_from_melodies$shouldCheckSoundProof())) {
-                MelodyProgress melodyProgress = MelodiesUtil.getMelodyProgress(player);
-                long progress = MelodiesUtil.getProgress(melodyProgress);
-                long length = MelodiesUtil.getLength(melodyProgress);
+                long progress;
+                long length;
+                if (level().isClientSide) {
+                    MelodyProgress melodyProgress = MelodiesUtil.getMelodyProgress(player);
+                    progress = MelodiesUtil.getProgress(melodyProgress);
+                    length = MelodiesUtil.getLength(melodyProgress);
+                    MelodyInfoPacket packet=new MelodyInfoPacket(progress,length);
+                    NetworkManager.sendToServer(MelodyInfoPacket.MELODY_INFO_PACKET_ID, packet.encode());
+                } else {
+                    progress = getMusicProgress();
+                    length = getMusicLength();
+                }
                 if (progress > 0 && progress < length) {//idk why the progress continues after the song finishes.
                     isHearing = true;
                     gain_friendship_from_melodies$setOwnerId(player.getId());
@@ -152,6 +171,26 @@ public abstract class PokemonEntityMixin extends Mob {
         }
     }
 
+    @Override
+    public long getMusicProgress() {
+        return entityData.get(MUSIC_PROGRESS);
+    }
+
+    @Override
+    public void setMusicProgress(long progress) {
+        entityData.set(MUSIC_PROGRESS, progress);
+    }
+
+    @Override
+    public long getMusicLength() {
+        return entityData.get(MUSIC_LENGTH);
+    }
+
+    @Override
+    public void setMusicLength(long length) {
+        entityData.set(MUSIC_LENGTH, length);
+    }
+
     @Unique
     private void gain_friendship_from_melodies$imitate(Player player) {
         InstrumentItem template = MelodiesUtil.getInstrumentItemTemplate(getInstrumentName());//TODO use the config to allow pokemon use different instrument
@@ -178,32 +217,34 @@ public abstract class PokemonEntityMixin extends Mob {
                 if (lastIndex == lastNoteIndex || lastIndex > notes.size() - 1) {
                     return;//The note is played or the melody is changed.
                 }
-                Note note = notes.get(lastIndex);
-                if (progress.getTime() >= note.getTime()) {
-                    if (enabledTracks.isEmpty() || enabledTracks.contains(track)) {
-                        float volume = note.getVelocity() / 255.0f * 2.0f;
-                        float pitch = (float) Math.pow(2, (note.getNote() - 24) / 12.0);
-                        int octave = 1;
-                        while (octave < 8 && pitch > 4.0 / 3.0) {
-                            pitch /= 2;
-                            octave++;
-                        }
-                        long length = note.getLength();
-                        long sustain = Math.min(InstrumentSustain, note.getSustain());
+                if (level().isClientSide) {
+                    Note note = notes.get(lastIndex);
+                    if (progress.getTime() >= note.getTime()) {
+                        if (enabledTracks.isEmpty() || enabledTracks.contains(track)) {
+                            float volume = note.getVelocity() / 255.0f * 2.0f;
+                            float pitch = (float) Math.pow(2, (note.getNote() - 24) / 12.0);
+                            int octave = 1;
+                            while (octave < 8 && pitch > 4.0 / 3.0) {
+                                pitch /= 2;
+                                octave++;
+                            }
+                            long length = note.getLength();
+                            long sustain = Math.min(InstrumentSustain, note.getSustain());
 
-                        // sound
-                        Common.soundManager.playSound(getX(), getY(), getZ(),
-                                sound.get(octave), SoundSource.NEUTRAL,
-                                volume, pitch, length, sustain,
-                                note.getTime() - progress.getTime(), this);
-                        lastNoteIndex = lastIndex;
-                        // particle
-                        if (!Common.soundManager.isFirstPerson(this)) {
-                            double x = Math.sin(-this.yBodyRot / 180.0 * Math.PI);
-                            double z = Math.cos(-this.yBodyRot / 180.0 * Math.PI);
-                            level().addParticle(ParticleTypes.NOTE,
-                                    getX() + x * offset.z + z * offset.x, getY() + getBbHeight() / 2.0 + offset.y, getZ() + z * offset.z - x * offset.x,
-                                    x * 5.0, 0.0, z * 5.0);
+                            // sound
+                            Common.soundManager.playSound(getX(), getY(), getZ(),
+                                    sound.get(octave), SoundSource.NEUTRAL,
+                                    volume, pitch, length, sustain,
+                                    note.getTime() - progress.getTime(), this);
+                            lastNoteIndex = lastIndex;
+                            // particle
+                            if (!Common.soundManager.isFirstPerson(this)) {
+                                double x = Math.sin(-this.yBodyRot / 180.0 * Math.PI);
+                                double z = Math.cos(-this.yBodyRot / 180.0 * Math.PI);
+                                level().addParticle(ParticleTypes.NOTE,
+                                        getX() + x * offset.z + z * offset.x, getY() + getBbHeight() / 2.0 + offset.y, getZ() + z * offset.z - x * offset.x,
+                                        x * 5.0, 0.0, z * 5.0);
+                            }
                         }
                     }
                 }

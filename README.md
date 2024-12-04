@@ -28,3 +28,6 @@ lute|Raichu|Alola|FEMALE|timid|surgesurfer|thunderbolt|100
 After adding this rule,if a timid,female Raichu learns Thunderbolt and the friendship value reaches 100, it will use the sound of the lute to imitate your performance.(Yeah,that's not logical.It's just an example.^_^)
 # Known issue
 None yet.
+# Download
+* [Curseforge]()
+* [Modrinth](https://modrinth.com/mod/gain-friendship-from-melodies)
