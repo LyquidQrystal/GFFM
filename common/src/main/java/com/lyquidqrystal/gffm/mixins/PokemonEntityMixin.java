@@ -4,6 +4,7 @@ import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
 import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.lyquidqrystal.gffm.GainFriendshipFromMelodies;
 import com.lyquidqrystal.gffm.interfaces.PokemonEntityInterface;
+import com.lyquidqrystal.gffm.items.GFFMItems;
 import com.lyquidqrystal.gffm.net.MelodyInfoPacket;
 import com.lyquidqrystal.gffm.utils.ClientUtil;
 import com.lyquidqrystal.gffm.utils.MelodiesUtil;
@@ -108,13 +109,19 @@ public abstract class PokemonEntityMixin extends Mob implements PokemonEntityInt
             }
             if (cliendsideCachedOwner != null) {
                 //GainFriendshipFromMelodies.LOGGER.info("Owner Detected");
-                Player p=(Player) cliendsideCachedOwner;
+                Player p = (Player) cliendsideCachedOwner;
                 MelodyProgress melodyProgress = MelodiesUtil.getMelodyProgress(p);
-                long progress0 = MelodiesUtil.getProgress(melodyProgress);
-                long length0 = MelodiesUtil.getLength(melodyProgress);
-                MelodyInfoPacket packet = new MelodyInfoPacket(progress0, length0);
-                //GainFriendshipFromMelodies.LOGGER.info("CLIENT PACKET PACKED");
-                NetworkManager.sendToServer(MelodyInfoPacket.MELODY_INFO_PACKET_ID, packet.encode());
+                long progressAccurate = MelodiesUtil.getProgress(melodyProgress);
+                long lengthAccurate = MelodiesUtil.getLength(melodyProgress);
+
+                long progressProcessed = Mth.floor((float) progressAccurate / 200) * 200L;
+                if (progressProcessed > getMusicProgress()) {
+                    MelodyInfoPacket packet = new MelodyInfoPacket(progressProcessed, lengthAccurate);
+                    NetworkManager.sendToServer(MelodyInfoPacket.MELODY_INFO_PACKET_ID, packet.encode());
+                    setMusicProgress(progressProcessed);//to be honest,Idk if it's needed to update the client value
+                    //GainFriendshipFromMelodies.LOGGER.info("CLIENT PACKET SENT");
+                }
+
                 gain_friendship_from_melodies$imitate(p);
             }
         }
@@ -175,6 +182,7 @@ public abstract class PokemonEntityMixin extends Mob implements PokemonEntityInt
 
     @Override
     public void setMusicProgress(long progress) {
+        //GainFriendshipFromMelodies.LOGGER.info("SIDE TEST");
         entityData.set(MUSIC_PROGRESS, progress);
     }
 

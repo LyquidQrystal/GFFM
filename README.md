@@ -5,7 +5,7 @@ A simple minecraft mod that allows you to use instrument from Immersive Melodies
 ## How to use the config to add instrument sound to Pokemon?
 The rules are formatted as follows:
 INSTRUMENT|SPECIES_NAME|REGIONAL_FORM|GENDER|NATURE|ABILITY|MOVE|FRIENDSHIP
-Please keep in mind that this is case-sensitive.(This will be changed in the future version.)
+Please keep in mind that this is case-sensitive.(This is changed since 0.2.2.)
 ### Definition
 * INSTRUMENT  
 It's the instrument sound you want the Pokemon to use. I didn't add any new instrument so you can only use bagpipe,didgeridoo,flute,lute,piano,triangle,trumpet and tiny_drum
