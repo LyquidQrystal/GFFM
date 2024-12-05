@@ -25,6 +25,7 @@ public final class GainFriendshipFromMelodies {
         COMMON_CONFIG = AutoConfig.getConfigHolder(GFFMCommonConfigModel.class).getConfig();
         LOGGER.info("GFFM Initiating.");
         NetworkManager.registerReceiver(NetworkManager.Side.C2S, MelodyInfoPacket.MELODY_INFO_PACKET_ID, ((buf, context) -> {
+            //GainFriendshipFromMelodies.LOGGER.info("RECV");
             MelodyInfoPacketHandler handler = new MelodyInfoPacketHandler();
             handler.handle(buf,context);
         }));

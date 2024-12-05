@@ -42,7 +42,7 @@ import java.util.Objects;
 import java.util.Set;
 
 @Mixin(PokemonEntity.class)
-public abstract class PokemonEntityMixin extends Mob  implements PokemonEntityInterface {
+public abstract class PokemonEntityMixin extends Mob implements PokemonEntityInterface {
     @Shadow
     public abstract Pokemon getPokemon();
 
@@ -90,7 +90,7 @@ public abstract class PokemonEntityMixin extends Mob  implements PokemonEntityIn
         entityData.define(DATA_ID_OWNER, -1);//This doesn't need to be saved so there will be no other injections
         entityData.define(DATA_INSTRUMENT_NAME, "");
         entityData.define(MUSIC_PROGRESS, 0L);
-        entityData.define(MUSIC_LENGTH,0L);
+        entityData.define(MUSIC_LENGTH, 0L);
     }
 
     @Inject(method = "tick", at = @At("HEAD"))
@@ -108,12 +108,19 @@ public abstract class PokemonEntityMixin extends Mob  implements PokemonEntityIn
             }
             if (cliendsideCachedOwner != null) {
                 //GainFriendshipFromMelodies.LOGGER.info("Owner Detected");
-                gain_friendship_from_melodies$imitate((Player) cliendsideCachedOwner);
+                Player p=(Player) cliendsideCachedOwner;
+                MelodyProgress melodyProgress = MelodiesUtil.getMelodyProgress(p);
+                long progress0 = MelodiesUtil.getProgress(melodyProgress);
+                long length0 = MelodiesUtil.getLength(melodyProgress);
+                MelodyInfoPacket packet = new MelodyInfoPacket(progress0, length0);
+                //GainFriendshipFromMelodies.LOGGER.info("CLIENT PACKET PACKED");
+                NetworkManager.sendToServer(MelodyInfoPacket.MELODY_INFO_PACKET_ID, packet.encode());
+                gain_friendship_from_melodies$imitate(p);
             }
         }
         if (this.getPokemon().isPlayerOwned() && !isBattling()) {
             Player player = this.getPokemon().getOwnerPlayer();//The game crashes if the mixin extends the TamableAnimal class, so it might be the easiest way to get the owner.Attention:this is a ServerPlayer.
-            gain_friendship_from_melodies$setOwnerId(-1);
+            gain_friendship_from_melodies$setOwnerId(player.getId());
             if (getInstrumentName().isEmpty()) {
                 for (String rule : GainFriendshipFromMelodies.commonConfig().distribution_rules) {
                     var tmp = PokemonChecker.match(rule, getPokemon());//TODO Rewrite it with entityData
@@ -124,21 +131,11 @@ public abstract class PokemonEntityMixin extends Mob  implements PokemonEntityIn
                 }
             }
             if (player != null && this.level().dimension() == player.level().dimension() && this.distanceTo(player) < GainFriendshipFromMelodies.commonConfig().distance_limit && !(getPokemon().getAbility().getName().equals("soundproof") && gain_friendship_from_melodies$shouldCheckSoundProof())) {
-                long progress;
-                long length;
-                if (level().isClientSide) {
-                    MelodyProgress melodyProgress = MelodiesUtil.getMelodyProgress(player);
-                    progress = MelodiesUtil.getProgress(melodyProgress);
-                    length = MelodiesUtil.getLength(melodyProgress);
-                    MelodyInfoPacket packet=new MelodyInfoPacket(progress,length);
-                    NetworkManager.sendToServer(MelodyInfoPacket.MELODY_INFO_PACKET_ID, packet.encode());
-                } else {
-                    progress = getMusicProgress();
-                    length = getMusicLength();
-                }
+                long progress = getMusicProgress();
+                long length = getMusicLength();
                 if (progress > 0 && progress < length) {//idk why the progress continues after the song finishes.
+                    //GainFriendshipFromMelodies.LOGGER.info("P:%d L:%d".formatted(progress,length));
                     isHearing = true;
-                    gain_friendship_from_melodies$setOwnerId(player.getId());
                     int progressToSec = Mth.floor((float) ((progress + 1) / 1000));
                     if (gain_friendship_from_melodies$getMusicState() == -1 || gain_friendship_from_melodies$getMusicState() > progressToSec) {
                         gain_friendship_from_melodies$setMusicState(progressToSec);

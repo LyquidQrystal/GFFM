@@ -19,6 +19,7 @@ public class MelodyInfoPacketHandler implements NetworkPacketHandler<MelodyInfoP
         int d = GainFriendshipFromMelodies.commonConfig().distance_limit * 2;
         List<PokemonEntity> entities = player.level().getEntitiesOfClass(PokemonEntity.class, AABB.ofSize(player.position(), d, d, d));
         for (PokemonEntity pokemon : entities) {
+            //GainFriendshipFromMelodies.LOGGER.info("editing");
             ((PokemonEntityInterface) (Object) pokemon).setMusicLength(packet.getLength());
             ((PokemonEntityInterface) (Object) pokemon).setMusicProgress(packet.getProgress());
         }
