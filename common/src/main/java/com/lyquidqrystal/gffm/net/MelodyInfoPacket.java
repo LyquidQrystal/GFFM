@@ -4,7 +4,6 @@ import com.lyquidqrystal.gffm.GainFriendshipFromMelodies;
 import io.netty.buffer.Unpooled;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerPlayer;
 
 public class MelodyInfoPacket implements NetworkPacket {
     public static final ResourceLocation MELODY_INFO_PACKET_ID = new ResourceLocation(GainFriendshipFromMelodies.MOD_ID, "melody_info");

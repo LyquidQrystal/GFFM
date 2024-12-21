@@ -95,7 +95,7 @@ public class PokemonChecker {
                     && checkFriendship(friendshipValue, pokemon);
             if (canUse) {
                 result = matcher.group(1);
-                GainFriendshipFromMelodies.LOGGER.info(result);
+                //GainFriendshipFromMelodies.LOGGER.info("Available:"+result);
             }
         }
         return result;

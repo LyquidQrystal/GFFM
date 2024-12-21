@@ -9,7 +9,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
 
 import java.util.List;
-import java.util.Objects;
 
 public class MelodyInfoPacketHandler implements NetworkPacketHandler<MelodyInfoPacket> {
     @Override

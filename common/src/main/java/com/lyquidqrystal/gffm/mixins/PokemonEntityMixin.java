@@ -4,7 +4,6 @@ import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
 import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.lyquidqrystal.gffm.GainFriendshipFromMelodies;
 import com.lyquidqrystal.gffm.interfaces.PokemonEntityInterface;
-import com.lyquidqrystal.gffm.items.GFFMItems;
 import com.lyquidqrystal.gffm.net.MelodyInfoPacket;
 import com.lyquidqrystal.gffm.utils.ClientUtil;
 import com.lyquidqrystal.gffm.utils.MelodiesUtil;
@@ -16,9 +15,7 @@ import immersive_melodies.client.MelodyProgress;
 import immersive_melodies.item.InstrumentItem;
 import immersive_melodies.resources.Melody;
 import immersive_melodies.resources.Note;
-import io.netty.buffer.Unpooled;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -99,7 +96,7 @@ public abstract class PokemonEntityMixin extends Mob implements PokemonEntityInt
         int friendshipValue = GainFriendshipFromMelodies.commonConfig().friendship_increment_value;
         long COOLDOWN = GainFriendshipFromMelodies.commonConfig().increase_friendship_cooldown;
         boolean isHearing = false;
-
+        //GainFriendshipFromMelodies.LOGGER.warn("Logger Working");
         if (level().isClientSide) {
             //GainFriendshipFromMelodies.LOGGER.info("client side detected");
             if (gain_friendship_from_melodies$getOwnerId() != -1) {
@@ -127,50 +124,55 @@ public abstract class PokemonEntityMixin extends Mob implements PokemonEntityInt
         }
         if (this.getPokemon().isPlayerOwned() && !isBattling()) {
             Player player = this.getPokemon().getOwnerPlayer();//The game crashes if the mixin extends the TamableAnimal class, so it might be the easiest way to get the owner.Attention:this is a ServerPlayer.
-            gain_friendship_from_melodies$setOwnerId(player.getId());
-            if (getInstrumentName().isEmpty()) {
-                for (String rule : GainFriendshipFromMelodies.commonConfig().distribution_rules) {
-                    var tmp = PokemonChecker.match(rule, getPokemon());//TODO Rewrite it with entityData
-                    if (!Objects.equals(tmp, "")) {
-                        setInstrumentName(tmp);
-                        break;
-                    }
+            if (player != null) {
+                if (gain_friendship_from_melodies$getOwnerId() == -1) {
+                    //GainFriendshipFromMelodies.LOGGER.warn("Accessing id");
+                    gain_friendship_from_melodies$setOwnerId(player.getId());
                 }
-            }
-            if (player != null && this.level().dimension() == player.level().dimension() && this.distanceTo(player) < GainFriendshipFromMelodies.commonConfig().distance_limit && !(getPokemon().getAbility().getName().equals("soundproof") && gain_friendship_from_melodies$shouldCheckSoundProof())) {
-                long progress = getMusicProgress();
-                long length = getMusicLength();
-                if (progress > 0 && progress < length) {//idk why the progress continues after the song finishes.
-                    //GainFriendshipFromMelodies.LOGGER.info("P:%d L:%d".formatted(progress,length));
-                    isHearing = true;
-                    int progressToSec = Mth.floor((float) ((progress + 1) / 1000));
-                    if (gain_friendship_from_melodies$getMusicState() == -1 || gain_friendship_from_melodies$getMusicState() > progressToSec) {
-                        gain_friendship_from_melodies$setMusicState(progressToSec);
-                    }
-                    int duration = progressToSec - gain_friendship_from_melodies$getMusicState();
-                    if (duration % COOLDOWN == 0 && duration > 0) {
-                        gain_friendship_from_melodies$setMusicState(progressToSec + 1);
-                        getPokemon().incrementFriendship(friendshipValue, true);
-                        ClientUtil.makeParticle(5, this, ParticleTypes.HAPPY_VILLAGER);
-                        var status = getPokemon().getStatus();
-                        if (status != null) {
-                            String statusName = status.getStatus().getName().getPath();
-                            if (Arrays.stream(GainFriendshipFromMelodies.commonConfig().curable_status).toList().contains(statusName)) {
-                                ((PersistentStatusContainerMixin) (Object) status).setSecondsLeft(0);
-                            }
+                if (getInstrumentName().isEmpty()) {
+                    for (String rule : GainFriendshipFromMelodies.commonConfig().distribution_rules) {
+                        var tmp = PokemonChecker.match(rule, getPokemon());//TODO Rewrite it with entityData
+                        if (!Objects.equals(tmp, "")) {
+                            setInstrumentName(tmp);
+                            break;
                         }
                     }
+                }
+                if (this.level().dimension() == player.level().dimension() && this.distanceTo(player) < GainFriendshipFromMelodies.commonConfig().distance_limit && !(getPokemon().getAbility().getName().equals("soundproof") && gain_friendship_from_melodies$shouldCheckSoundProof())) {
+                    long progress = getMusicProgress();
+                    long length = getMusicLength();
+                    if (progress > 0 && progress < length) {//idk why the progress continues after the song finishes.
+                        //GainFriendshipFromMelodies.LOGGER.info("P:%d L:%d".formatted(progress,length));
+                        isHearing = true;
+                        int progressToSec = Mth.floor((float) ((progress + 1) / 1000));
+                        if (gain_friendship_from_melodies$getMusicState() == -1 || gain_friendship_from_melodies$getMusicState() > progressToSec) {
+                            gain_friendship_from_melodies$setMusicState(progressToSec);
+                        }
+                        int duration = progressToSec - gain_friendship_from_melodies$getMusicState();
+                        if (duration % COOLDOWN == 0 && duration > 0) {
+                            gain_friendship_from_melodies$setMusicState(progressToSec + 1);
+                            getPokemon().incrementFriendship(friendshipValue, true);
+                            ClientUtil.makeParticle(5, this, ParticleTypes.HAPPY_VILLAGER);
+                            var status = getPokemon().getStatus();
+                            if (status != null) {
+                                String statusName = status.getStatus().getName().getPath();
+                                if (Arrays.stream(GainFriendshipFromMelodies.commonConfig().curable_status).toList().contains(statusName)) {
+                                    ((PersistentStatusContainerMixin) (Object) status).setSecondsLeft(0);
+                                }
+                            }
+                        }
 
-                    if (length - progress < COOLDOWN * 1000 && GainFriendshipFromMelodies.commonConfig().should_warn && !gain_friendship_from_melodies$hasWarned) {
-                        gain_friendship_from_melodies$setMusicState((int) (gain_friendship_from_melodies$getMusicState() + COOLDOWN));
-                        cry();
-                        gain_friendship_from_melodies$hasWarned = true;
+                        if (length - progress < COOLDOWN * 1000 && GainFriendshipFromMelodies.commonConfig().should_warn && !gain_friendship_from_melodies$hasWarned) {
+                            gain_friendship_from_melodies$setMusicState((int) (gain_friendship_from_melodies$getMusicState() + COOLDOWN));
+                            cry();
+                            gain_friendship_from_melodies$hasWarned = true;
+                        }
                     }
                 }
-            }
-            if (!isHearing) {
-                gain_friendship_from_melodies$setMusicState(-1);
-                gain_friendship_from_melodies$hasWarned = false;
+                if (!isHearing) {
+                    gain_friendship_from_melodies$setMusicState(-1);
+                    gain_friendship_from_melodies$hasWarned = false;
+                }
             }
         }
     }
@@ -253,7 +255,6 @@ public abstract class PokemonEntityMixin extends Mob implements PokemonEntityInt
                         }
                     }
                 }
-
             }
         }
     }

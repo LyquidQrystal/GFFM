@@ -10,7 +10,7 @@ public class GFFMItems {
 
     /*
     I tried so hard, and got so far, but in the end, it doesn't even matter. T_T
-    No items are added currently,I tried to add a new flute but I failed. I don't think copying the file into my mod is a good idea so I didn't try that. I just tried to get the Instrument using accessor and failed.
+    No items are added currently,I tried to add a new flute, but I failed. I don't think copying the file into my mod is a good idea, so I didn't try that. I just tried to get the Instrument using accessor and failed.
     public static final RegistrySupplier<Item> POKEFLUTE = register(GainFriendshipFromMelodies.MOD_ID, "pokeflute", "flute");
 
     public static RegistrySupplier<Item> register(String namespace, String name, String baseInstrumentName) {
