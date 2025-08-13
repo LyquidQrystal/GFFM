@@ -117,6 +117,12 @@ public abstract class PokemonEntityMixin extends Mob implements PokemonEntityInt
                     NetworkManager.sendToServer(MelodyInfoPacket.MELODY_INFO_PACKET_ID, packet.encode());
                     setMusicProgress(progressProcessed);//to be honest,Idk if it's needed to update the client value
                     //GainFriendshipFromMelodies.LOGGER.info("CLIENT PACKET SENT");
+                } else {
+                    if (getMusicProgress() - progressProcessed > 1000) {
+                        MelodyInfoPacket packet = new MelodyInfoPacket(progressProcessed, lengthAccurate);
+                        NetworkManager.sendToServer(MelodyInfoPacket.MELODY_INFO_PACKET_ID, packet.encode());
+                        setMusicProgress(progressProcessed);
+                    }
                 }
 
                 gain_friendship_from_melodies$imitate(p);
@@ -126,7 +132,6 @@ public abstract class PokemonEntityMixin extends Mob implements PokemonEntityInt
             Player player = this.getPokemon().getOwnerPlayer();//The game crashes if the mixin extends the TamableAnimal class, so it might be the easiest way to get the owner.Attention:this is a ServerPlayer.
             if (player != null) {
                 if (gain_friendship_from_melodies$getOwnerId() == -1) {
-                    //GainFriendshipFromMelodies.LOGGER.warn("Accessing id");
                     gain_friendship_from_melodies$setOwnerId(player.getId());
                 }
                 if (getInstrumentName().isEmpty()) {
