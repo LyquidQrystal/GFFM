@@ -26,12 +26,12 @@
     "gain_friendship_from_melodies.mixins.json"
   ],
   "depends": {
-    "fabricloader": ">=0.16.0",
-    "minecraft": "~1.20.1",
-    "java": ">=17",
+    "fabricloader": ">=0.16.9",
+    "minecraft": "~1.21.1",
+    "java": ">=21",
     "fabric-api": "*",
-    "immersive_melodies": ">=0.3.0",
-    "cobblemon": ">=1.5.2"
+    "immersive_melodies": ">=0.6.0",
+    "cobblemon": ">=1.6.1"
   },
   "suggests": {
     "another-mod": "*"

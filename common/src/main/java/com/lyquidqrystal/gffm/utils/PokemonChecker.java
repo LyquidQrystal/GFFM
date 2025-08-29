@@ -4,8 +4,6 @@ import com.cobblemon.mod.common.api.moves.Move;
 import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.lyquidqrystal.gffm.GainFriendshipFromMelodies;
 
-import java.util.List;
-import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -64,6 +62,7 @@ public class PokemonChecker {
         }
         return pokemon.getForm().getName().equalsIgnoreCase(formName);
     }
+
     public static String match(String rule, Pokemon pokemon) {
         Pattern pattern = Pattern.compile("([^|]+)\\|([^|]+)\\|([^|]+)\\|([^|]+)\\|([^|]+)\\|([^|]+)\\|([^|]+)\\|([^|]+)");
         Matcher matcher = pattern.matcher(rule.toLowerCase());
@@ -77,11 +76,10 @@ public class PokemonChecker {
             String tmp = matcher.group(8);
             if (tmp.equalsIgnoreCase("any")) {
                 friendshipValue = -1;
-            }else{
-                try{
-                    friendshipValue=Integer.parseInt(tmp);
-                }
-                catch (NumberFormatException e){
+            } else {
+                try {
+                    friendshipValue = Integer.parseInt(tmp);
+                } catch (NumberFormatException e) {
                     GainFriendshipFromMelodies.LOGGER.info("Failed to convert the friendship value");
                 }
             }

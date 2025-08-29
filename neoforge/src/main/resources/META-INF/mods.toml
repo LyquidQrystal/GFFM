@@ -1,5 +1,5 @@
 modLoader = "javafml"
-loaderVersion = "[47,)"
+loaderVersion = "[4,)"
 #issueTrackerURL = ""
 license = "MIT License"
 
@@ -14,29 +14,32 @@ Enjoy the music with your Cobblemon!
 logoFile = "icon.png"
 
 [[dependencies.gain_friendship_from_melodies]]
-modId = "forge"
-mandatory = true
-versionRange = "[47,)"
+modId = "neoforge"
+type = "required"
+versionRange = "[21.1,)"
 ordering = "NONE"
 side = "BOTH"
 
 [[dependencies.gain_friendship_from_melodies]]
 modId = "minecraft"
-mandatory = true
-versionRange = "[1.20.1,)"
+type = "required"
+versionRange = "[1.21.1,)"
 ordering = "NONE"
 side = "BOTH"
 
 [[dependencies.gain_friendship_from_melodies]]
 modId = "cobblemon"
-mandatory = true
-versionRange = "[1.5.0,)"
+type = "required"
+versionRange = "[1.6.0,)"
 ordering = "NONE"
 side = "BOTH"
 
 [[dependencies.gain_friendship_from_melodies]]
 modId = "immersive_melodies"
-mandatory = true
-versionRange = "[0.3.0,)"
+type = "required"
+versionRange = "[0.6.0,)"
 ordering = "NONE"
 side = "BOTH"
+
+[[mixins]]
+config = "gain_friendship_from_melodies.mixins.json"

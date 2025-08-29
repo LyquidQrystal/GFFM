@@ -87,29 +87,23 @@ public class MelodiesUtil {
         }
         return melodyProgress.getMelody().getLength();
     }
-    /*
-        Supplier<Item> BAGPIPE = register(Common.MOD_ID, "bagpipe", 200, new Vector3f(0.5f, 0.6f, 0.05f));
-    Supplier<Item> DIDGERIDOO = register(Common.MOD_ID, "didgeridoo", 200, new Vector3f(0.0f, -0.45f, 1.0f));
-    Supplier<Item> FLUTE = register(Common.MOD_ID, "flute", 100, new Vector3f(0.0f, 0.15f, 0.9f));
-    Supplier<Item> LUTE = register(Common.MOD_ID, "lute", 200, new Vector3f(0.0f, 0.0f, 0.5f));
-    Supplier<Item> PIANO = register(Common.MOD_ID, "piano", 300, new Vector3f(0.0f, 0.25f, 0.5f));
-    Supplier<Item> TRIANGLE = register(Common.MOD_ID, "triangle", 300, new Vector3f(0.0f, 0.0f, 0.6f));
-    Supplier<Item> TRUMPET = register(Common.MOD_ID, "trumpet", 100, new Vector3f(0.0f, 0.25f, 1.4f));
-    Supplier<Item> TINY_DRUM = register(Common.MOD_ID, "tiny_drum", 300, new Vector3f(0.0f, 0.25f, 0.5f));
-     */
-    public static InstrumentItem getInstrumentItemTemplate(String name){
-        if(name==null){
+
+    public static InstrumentItem getInstrumentItemTemplate(String name) {
+        if (name == null) {
             return null;
         }
         Item item = switch (name) {
-            case "bagpipe" -> Items.BAGPIPE.get();
-            case "didgeridoo" -> Items.DIDGERIDOO.get();
-            case "flute" -> Items.FLUTE.get();
-            case "lute" -> Items.LUTE.get();
-            case "piano" -> Items.PIANO.get();
-            case "triangle" -> Items.TRIANGLE.get();
-            case "trumpet" -> Items.TRUMPET.get();
-            case "tiny_drum" -> Items.TINY_DRUM.get();
+            case "bagpipe" -> Items.BAGPIPE;
+            case "didgeridoo" -> Items.DIDGERIDOO;
+            case "flute" -> Items.FLUTE;
+            case "lute" -> Items.LUTE;
+            case "piano" -> Items.PIANO;
+            case "triangle" -> Items.TRIANGLE;
+            case "trumpet" -> Items.TRUMPET;
+            case "tiny_drum" -> Items.TINY_DRUM;
+            case "vielle" -> Items.VIELLE;
+            case "ender_bass" -> Items.ENDER_BASS;
+            case "handpan" -> Items.HANDPAN;
             default -> null;
         };
         return (InstrumentItem) item;

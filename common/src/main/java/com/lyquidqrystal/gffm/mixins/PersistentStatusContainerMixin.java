@@ -5,7 +5,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
 @Mixin(PersistentStatusContainer.class)
-public interface PersistentStatusContainerMixin{
+public interface PersistentStatusContainerMixin {
     @Accessor("secondsLeft")
     void setSecondsLeft(int secondsLeft);
 }

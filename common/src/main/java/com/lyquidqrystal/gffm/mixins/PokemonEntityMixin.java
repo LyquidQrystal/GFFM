@@ -4,14 +4,16 @@ import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
 import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.lyquidqrystal.gffm.GainFriendshipFromMelodies;
 import com.lyquidqrystal.gffm.interfaces.PokemonEntityInterface;
-import com.lyquidqrystal.gffm.net.MelodyInfoPacket;
+import com.lyquidqrystal.gffm.net.packet.MelodyInfoPacket;
 import com.lyquidqrystal.gffm.utils.ClientUtil;
 import com.lyquidqrystal.gffm.utils.MelodiesUtil;
 import com.lyquidqrystal.gffm.utils.PokemonChecker;
 import dev.architectury.networking.NetworkManager;
 import immersive_melodies.Common;
+import immersive_melodies.Config;
 import immersive_melodies.Sounds;
 import immersive_melodies.client.MelodyProgress;
+import immersive_melodies.client.sound.CancelableSoundInstance;
 import immersive_melodies.item.InstrumentItem;
 import immersive_melodies.resources.Melody;
 import immersive_melodies.resources.Note;
@@ -27,6 +29,7 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import org.joml.Vector3f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -35,9 +38,9 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 @Mixin(PokemonEntity.class)
 public abstract class PokemonEntityMixin extends Mob implements PokemonEntityInterface {
@@ -54,10 +57,10 @@ public abstract class PokemonEntityMixin extends Mob implements PokemonEntityInt
     public abstract boolean isBattling();
 
     @Unique
-    private int gain_friendship_from_melodies$musicState;
+    private int musicState;
     @Unique
-    private boolean gain_friendship_from_melodies$hasWarned;
-    private int lastNoteIndex;
+    private boolean hasWarned;
+    private HashMap<Integer, Integer> pkmProgress = new HashMap<>();
     private LivingEntity cliendsideCachedOwner;
     private static final EntityDataAccessor<Integer> DATA_ID_OWNER;
     private static final EntityDataAccessor<String> DATA_INSTRUMENT_NAME;
@@ -73,22 +76,21 @@ public abstract class PokemonEntityMixin extends Mob implements PokemonEntityInt
 
     protected PokemonEntityMixin(EntityType<? extends Mob> entityType, Level level) {
         super(entityType, level);
-        gain_friendship_from_melodies$hasWarned = false;
-        gain_friendship_from_melodies$musicState = 0;
-        lastNoteIndex = 0;
+        hasWarned = false;
+        musicState = 0;
     }
 
     @Unique
-    private boolean gain_friendship_from_melodies$shouldCheckSoundProof() {
+    private boolean shouldCheckSoundProof() {
         return GainFriendshipFromMelodies.commonConfig().is_soundproof_on;
     }
 
     @Inject(method = "defineSynchedData", at = @At("TAIL"))
-    private void defineExtraSynchedData(CallbackInfo info) {
-        entityData.define(DATA_ID_OWNER, -1);//This doesn't need to be saved so there will be no other injections
-        entityData.define(DATA_INSTRUMENT_NAME, "");
-        entityData.define(MUSIC_PROGRESS, 0L);
-        entityData.define(MUSIC_LENGTH, 0L);
+    private void defineExtraSynchedData(SynchedEntityData.Builder builder, CallbackInfo info) {
+        builder.define(DATA_ID_OWNER, -1);//This doesn't need to be saved so there will be no other injections
+        builder.define(DATA_INSTRUMENT_NAME, "");
+        builder.define(MUSIC_PROGRESS, 0L);
+        builder.define(MUSIC_LENGTH, 0L);
     }
 
     @Inject(method = "tick", at = @At("HEAD"))
@@ -96,43 +98,44 @@ public abstract class PokemonEntityMixin extends Mob implements PokemonEntityInt
         int friendshipValue = GainFriendshipFromMelodies.commonConfig().friendship_increment_value;
         long COOLDOWN = GainFriendshipFromMelodies.commonConfig().increase_friendship_cooldown;
         boolean isHearing = false;
-        //GainFriendshipFromMelodies.LOGGER.warn("Logger Working");
         if (level().isClientSide) {
-            //GainFriendshipFromMelodies.LOGGER.info("client side detected");
-            if (gain_friendship_from_melodies$getOwnerId() != -1) {
-                cliendsideCachedOwner = (LivingEntity) level().getEntity(gain_friendship_from_melodies$getOwnerId());
+            if (getOwnerId() != -1) {
+                cliendsideCachedOwner = (LivingEntity) level().getEntity(getOwnerId());
             } else {
                 cliendsideCachedOwner = null;
             }
             if (cliendsideCachedOwner != null) {
-                //GainFriendshipFromMelodies.LOGGER.info("Owner Detected");
                 Player p = (Player) cliendsideCachedOwner;
                 MelodyProgress melodyProgress = MelodiesUtil.getMelodyProgress(p);
+                if (melodyProgress == null) {
+                    return;
+                }
                 long progressAccurate = MelodiesUtil.getProgress(melodyProgress);
                 long lengthAccurate = MelodiesUtil.getLength(melodyProgress);
-
                 long progressProcessed = Mth.floor((float) progressAccurate / 200) * 200L;
-                if (progressProcessed > getMusicProgress()) {
+                long currentProgress = getMusicProgress();
+                Melody melody = melodyProgress.getMelody();
+                if (getMusicLength() != melody.getLength() || getMusicLength() == 0 || currentProgress - progressProcessed > 1000) {
+                    refresh(melody);
+                }
+                if (progressProcessed > currentProgress) {
                     MelodyInfoPacket packet = new MelodyInfoPacket(progressProcessed, lengthAccurate);
-                    NetworkManager.sendToServer(MelodyInfoPacket.MELODY_INFO_PACKET_ID, packet.encode());
-                    setMusicProgress(progressProcessed);//to be honest,Idk if it's needed to update the client value
-                    //GainFriendshipFromMelodies.LOGGER.info("CLIENT PACKET SENT");
+                    NetworkManager.sendToServer(packet);
                 } else {
-                    if (getMusicProgress() - progressProcessed > 1000) {
+                    if (currentProgress - progressProcessed > 1000) {
                         MelodyInfoPacket packet = new MelodyInfoPacket(progressProcessed, lengthAccurate);
-                        NetworkManager.sendToServer(MelodyInfoPacket.MELODY_INFO_PACKET_ID, packet.encode());
-                        setMusicProgress(progressProcessed);
+                        NetworkManager.sendToServer(packet);
                     }
                 }
 
-                gain_friendship_from_melodies$imitate(p);
+                imitate(p);
             }
         }
         if (this.getPokemon().isPlayerOwned() && !isBattling()) {
             Player player = this.getPokemon().getOwnerPlayer();//The game crashes if the mixin extends the TamableAnimal class, so it might be the easiest way to get the owner.Attention:this is a ServerPlayer.
             if (player != null) {
-                if (gain_friendship_from_melodies$getOwnerId() == -1) {
-                    gain_friendship_from_melodies$setOwnerId(player.getId());
+                if (getOwnerId() == -1) {
+                    setOwnerId(player.getId());
                 }
                 if (getInstrumentName().isEmpty()) {
                     for (String rule : GainFriendshipFromMelodies.commonConfig().distribution_rules) {
@@ -143,19 +146,19 @@ public abstract class PokemonEntityMixin extends Mob implements PokemonEntityInt
                         }
                     }
                 }
-                if (this.level().dimension() == player.level().dimension() && this.distanceTo(player) < GainFriendshipFromMelodies.commonConfig().distance_limit && !(getPokemon().getAbility().getName().equals("soundproof") && gain_friendship_from_melodies$shouldCheckSoundProof())) {
+                if (this.level().dimension() == player.level().dimension() && this.distanceTo(player) < GainFriendshipFromMelodies.commonConfig().distance_limit && !(getPokemon().getAbility().getName().equals("soundproof") && shouldCheckSoundProof())) {
                     long progress = getMusicProgress();
                     long length = getMusicLength();
                     if (progress > 0 && progress < length) {//idk why the progress continues after the song finishes.
                         //GainFriendshipFromMelodies.LOGGER.info("P:%d L:%d".formatted(progress,length));
                         isHearing = true;
                         int progressToSec = Mth.floor((float) ((progress + 1) / 1000));
-                        if (gain_friendship_from_melodies$getMusicState() == -1 || gain_friendship_from_melodies$getMusicState() > progressToSec) {
-                            gain_friendship_from_melodies$setMusicState(progressToSec);
+                        if (getMusicState() == -1 || getMusicState() > progressToSec) {
+                            setMusicState(progressToSec);
                         }
-                        int duration = progressToSec - gain_friendship_from_melodies$getMusicState();
+                        int duration = progressToSec - getMusicState();
                         if (duration % COOLDOWN == 0 && duration > 0) {
-                            gain_friendship_from_melodies$setMusicState(progressToSec + 1);
+                            setMusicState(progressToSec + 1);
                             getPokemon().incrementFriendship(friendshipValue, true);
                             ClientUtil.makeParticle(5, this, ParticleTypes.HAPPY_VILLAGER);
                             var status = getPokemon().getStatus();
@@ -166,17 +169,16 @@ public abstract class PokemonEntityMixin extends Mob implements PokemonEntityInt
                                 }
                             }
                         }
-
-                        if (length - progress < COOLDOWN * 1000 && GainFriendshipFromMelodies.commonConfig().should_warn && !gain_friendship_from_melodies$hasWarned) {
-                            gain_friendship_from_melodies$setMusicState((int) (gain_friendship_from_melodies$getMusicState() + COOLDOWN));
+                        if (length - progress < COOLDOWN * 1000 && GainFriendshipFromMelodies.commonConfig().should_warn && !hasWarned) {
+                            setMusicState((int) (getMusicState() + COOLDOWN));
                             cry();
-                            gain_friendship_from_melodies$hasWarned = true;
+                            hasWarned = true;
                         }
                     }
                 }
                 if (!isHearing) {
-                    gain_friendship_from_melodies$setMusicState(-1);
-                    gain_friendship_from_melodies$hasWarned = false;
+                    setMusicState(-1);
+                    hasWarned = false;
                 }
             }
         }
@@ -203,36 +205,49 @@ public abstract class PokemonEntityMixin extends Mob implements PokemonEntityInt
         entityData.set(MUSIC_LENGTH, length);
     }
 
+    private void refresh(Melody melody) {
+        int trackCount = melody.getTracks().size();
+        pkmProgress.clear();
+        for (int i = 0; i < trackCount; ++i) {
+            pkmProgress.put(i, 0);
+        }
+    }
+
     @Unique
-    private void gain_friendship_from_melodies$imitate(Player player) {
-        InstrumentItem template = MelodiesUtil.getInstrumentItemTemplate(getInstrumentName());//TODO use the config to allow pokemon use different instrument
+    private void imitate(Player player) {
+        InstrumentItem template = MelodiesUtil.getInstrumentItemTemplate(getInstrumentName());
         if (!level().isClientSide || template == null) {
             return;
         }
-        Sounds.Instrument sound = ((InstrumentItemAccessor) template).getSound();
-        var InstrumentSustain = ((InstrumentItemAccessor) template).getSustain();
-        var offset = ((InstrumentItemAccessor) template).getOffset();
+        var acc = (InstrumentItemAccessor) template;
+        Sounds.Instrument sound = acc.getSound();
+        var instrumentSustain = acc.getSustain();
+        var offset = acc.getOffset();
         ItemStack itemStack = MelodiesUtil.getInstrumentItemStack_Final(player);
         InstrumentItem item = MelodiesUtil.getInstrumentItem_Final(player);
         if (item != null) {
             //The following code is a simplified version of InstrumentItem.InventoryClientTick(). Some variables are renamed to distinguish.
-            Set<Integer> enabledTracks = item.getEnabledTracks(itemStack);
+            List<Integer> enabledTracks = item.getEnabledTracks(itemStack);
             MelodyProgress progress = MelodiesUtil.getMelodyProgress(player);
+            if (progress == null) {
+                return;
+            }
             Melody melody = progress.getMelody();
-
-            for (int track = 0; track < melody.getTracks().size(); track++) {
-                int lastIndex = progress.getLastIndex(track);
+            for (int track = 0; track < melody.getTracks().size(); ++track) {
+                int lastIndex = pkmProgress.getOrDefault(track, -1);
+                if (lastIndex == -1) {
+                    continue;
+                }
                 List<Note> notes = melody.getTracks().get(track).getNotes();
-                if (lastIndex > 0) {
-                    lastIndex -= 1;
-                }
-                if (lastIndex == lastNoteIndex || lastIndex > notes.size() - 1) {
-                    return;//The note is played or the melody is changed.
-                }
                 if (level().isClientSide) {
-                    Note note = notes.get(lastIndex);
-                    if (progress.getTime() >= note.getTime()) {
+                    for (int i = lastIndex; i < notes.size(); ++i) {
+                        Note note = notes.get(i);
+                        if (progress.getTime() < (long) note.getTime()) {
+                            pkmProgress.replace(track, i);
+                            break;
+                        }
                         if (enabledTracks.isEmpty() || enabledTracks.contains(track)) {
+                            /*
                             float volume = note.getVelocity() / 255.0f * 2.0f;
                             float pitch = (float) Math.pow(2, (note.getNote() - 24) / 12.0);
                             int octave = 1;
@@ -241,14 +256,13 @@ public abstract class PokemonEntityMixin extends Mob implements PokemonEntityInt
                                 octave++;
                             }
                             long length = note.getLength();
-                            long sustain = Math.min(InstrumentSustain, note.getSustain());
+                            //long sustain = Math.min(InstrumentSustain, note.getSustain());
 
                             // sound
                             Common.soundManager.playSound(getX(), getY(), getZ(),
                                     sound.get(octave), SoundSource.NEUTRAL,
                                     volume, pitch, length, sustain,
                                     note.getTime() - progress.getTime(), this);
-                            lastNoteIndex = lastIndex;
                             // particle
                             if (!Common.soundManager.isFirstPerson(this)) {
                                 double x = Math.sin(-this.yBodyRot / 180.0 * Math.PI);
@@ -256,7 +270,11 @@ public abstract class PokemonEntityMixin extends Mob implements PokemonEntityInt
                                 level().addParticle(ParticleTypes.NOTE,
                                         getX() + x * offset.z + z * offset.x, getY() + getBbHeight() / 2.0 + offset.y, getZ() + z * offset.z - x * offset.x,
                                         x * 5.0, 0.0, z * 5.0);
-                            }
+                            }*/
+                            playNote(note, progress.getTime(), instrumentSustain, offset, sound);
+                        }
+                        if (i == notes.size() - 1) {
+                            pkmProgress.replace(track, i + 1);
                         }
                     }
                 }
@@ -264,23 +282,49 @@ public abstract class PokemonEntityMixin extends Mob implements PokemonEntityInt
         }
     }
 
-    @Unique
-    private int gain_friendship_from_melodies$getMusicState() {
-        return gain_friendship_from_melodies$musicState;
+    private void playNote(Note note, long time, long insSustain, Vector3f offset, Sounds.Instrument sound) {
+        float volume = (float) note.getVelocity() / 255.0F * 2.0F * Config.getInstance().instrumentVolumeFactor;
+        float pitch = (float) Math.pow(2.0, (double) (note.getNote() - 24) / 12.0);
+
+        int octave;
+        for (octave = 1; octave < 8 && (double) pitch > 1.3333333333333333; ++octave) {
+            pitch /= 2.0F;
+        }
+
+        long length = note.getLength();
+        long sustain = Math.min(insSustain, note.getSustain());
+        float factor = Config.getInstance().perceivedLoudnessAdjustmentFactor;
+        float adjustedVolume = (float) ((double) volume / Math.sqrt((double) pitch * Math.pow(2.0, (octave - 4))));
+        volume = volume * (1.0F - factor) + adjustedVolume * factor;
+        CancelableSoundInstance soundInstance = Common.soundManager.playSound(getX(), getY(), getZ(), sound.get(octave), SoundSource.NEUTRAL, volume, pitch, length, sustain, (long) note.getTime() - time, this);
+        if (Config.getInstance().stopGameMusicForMobs) {
+            Common.soundManager.pauseGameMusic();
+        }
+        if (!Common.soundManager.isFirstPerson(this)) {
+            double x = Math.sin((double) (-this.yBodyRot) / 180.0 * Math.PI);
+            double z = Math.cos((double) (-this.yBodyRot) / 180.0 * Math.PI);
+            this.level().addParticle(ParticleTypes.NOTE, this.getX() + x * (double) offset.z + z * (double) offset.x, this.getY() + (double) this.getBbHeight() / 2.0 + (double) offset.y, this.getZ() + z * (double) offset.z - x * (double) offset.x, x * 5.0, 0.0, z * 5.0);
+        }
+
     }
 
     @Unique
-    private void gain_friendship_from_melodies$setMusicState(int value) {
-        gain_friendship_from_melodies$musicState = value;
+    private int getMusicState() {
+        return musicState;
     }
 
     @Unique
-    private Integer gain_friendship_from_melodies$getOwnerId() {
+    private void setMusicState(int value) {
+        musicState = value;
+    }
+
+    @Unique
+    private Integer getOwnerId() {
         return entityData.get(DATA_ID_OWNER);
     }
 
     @Unique
-    private void gain_friendship_from_melodies$setOwnerId(Integer id) {
+    private void setOwnerId(Integer id) {
         entityData.set(DATA_ID_OWNER, id);
     }
 
