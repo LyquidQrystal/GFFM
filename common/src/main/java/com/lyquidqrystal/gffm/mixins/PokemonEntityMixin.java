@@ -17,7 +17,9 @@ import immersive_melodies.client.sound.CancelableSoundInstance;
 import immersive_melodies.item.InstrumentItem;
 import immersive_melodies.resources.Melody;
 import immersive_melodies.resources.Note;
+import net.minecraft.core.Vec3i;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -26,6 +28,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -127,7 +130,6 @@ public abstract class PokemonEntityMixin extends Mob implements PokemonEntityInt
                         NetworkManager.sendToServer(packet);
                     }
                 }
-
                 imitate(p);
             }
         }
@@ -137,20 +139,11 @@ public abstract class PokemonEntityMixin extends Mob implements PokemonEntityInt
                 if (getOwnerId() == -1) {
                     setOwnerId(player.getId());
                 }
-                if (getInstrumentName().isEmpty()) {
-                    for (String rule : GainFriendshipFromMelodies.commonConfig().distribution_rules) {
-                        var tmp = PokemonChecker.match(rule, getPokemon());//TODO Rewrite it with entityData
-                        if (!Objects.equals(tmp, "")) {
-                            setInstrumentName(tmp);
-                            break;
-                        }
-                    }
-                }
+                initInstrument();
                 if (this.level().dimension() == player.level().dimension() && this.distanceTo(player) < GainFriendshipFromMelodies.commonConfig().distance_limit && !(getPokemon().getAbility().getName().equals("soundproof") && shouldCheckSoundProof())) {
                     long progress = getMusicProgress();
                     long length = getMusicLength();
                     if (progress > 0 && progress < length) {//idk why the progress continues after the song finishes.
-                        //GainFriendshipFromMelodies.LOGGER.info("P:%d L:%d".formatted(progress,length));
                         isHearing = true;
                         int progressToSec = Mth.floor((float) ((progress + 1) / 1000));
                         if (getMusicState() == -1 || getMusicState() > progressToSec) {
@@ -216,7 +209,9 @@ public abstract class PokemonEntityMixin extends Mob implements PokemonEntityInt
     @Unique
     private void imitate(Player player) {
         InstrumentItem template = MelodiesUtil.getInstrumentItemTemplate(getInstrumentName());
-        if (!level().isClientSide || template == null) {
+        Pokemon pokemon = getPokemon();
+        var status = pokemon.getStatus();
+        if ((status != null && status.getStatus().getName().getPath().equals("sleep")) || !level().isClientSide || template == null) {
             return;
         }
         var acc = (InstrumentItemAccessor) template;
@@ -247,30 +242,6 @@ public abstract class PokemonEntityMixin extends Mob implements PokemonEntityInt
                             break;
                         }
                         if (enabledTracks.isEmpty() || enabledTracks.contains(track)) {
-                            /*
-                            float volume = note.getVelocity() / 255.0f * 2.0f;
-                            float pitch = (float) Math.pow(2, (note.getNote() - 24) / 12.0);
-                            int octave = 1;
-                            while (octave < 8 && pitch > 4.0 / 3.0) {
-                                pitch /= 2;
-                                octave++;
-                            }
-                            long length = note.getLength();
-                            //long sustain = Math.min(InstrumentSustain, note.getSustain());
-
-                            // sound
-                            Common.soundManager.playSound(getX(), getY(), getZ(),
-                                    sound.get(octave), SoundSource.NEUTRAL,
-                                    volume, pitch, length, sustain,
-                                    note.getTime() - progress.getTime(), this);
-                            // particle
-                            if (!Common.soundManager.isFirstPerson(this)) {
-                                double x = Math.sin(-this.yBodyRot / 180.0 * Math.PI);
-                                double z = Math.cos(-this.yBodyRot / 180.0 * Math.PI);
-                                level().addParticle(ParticleTypes.NOTE,
-                                        getX() + x * offset.z + z * offset.x, getY() + getBbHeight() / 2.0 + offset.y, getZ() + z * offset.z - x * offset.x,
-                                        x * 5.0, 0.0, z * 5.0);
-                            }*/
                             playNote(note, progress.getTime(), instrumentSustain, offset, sound);
                         }
                         if (i == notes.size() - 1) {
@@ -282,7 +253,7 @@ public abstract class PokemonEntityMixin extends Mob implements PokemonEntityInt
         }
     }
 
-    private void playNote(Note note, long time, long insSustain, Vector3f offset, Sounds.Instrument sound) {
+    protected void playNote(Note note, long time, long insSustain, Vector3f offset, Sounds.Instrument sound) {
         float volume = (float) note.getVelocity() / 255.0F * 2.0F * Config.getInstance().instrumentVolumeFactor;
         float pitch = (float) Math.pow(2.0, (double) (note.getNote() - 24) / 12.0);
 
@@ -296,7 +267,7 @@ public abstract class PokemonEntityMixin extends Mob implements PokemonEntityInt
         float factor = Config.getInstance().perceivedLoudnessAdjustmentFactor;
         float adjustedVolume = (float) ((double) volume / Math.sqrt((double) pitch * Math.pow(2.0, (octave - 4))));
         volume = volume * (1.0F - factor) + adjustedVolume * factor;
-        CancelableSoundInstance soundInstance = Common.soundManager.playSound(getX(), getY(), getZ(), sound.get(octave), SoundSource.NEUTRAL, volume, pitch, length, sustain, (long) note.getTime() - time, this);
+        Common.soundManager.playSound(getX(), getY(), getZ(), sound.get(octave), SoundSource.NEUTRAL, volume, pitch, length, sustain, (long) note.getTime() - time, this);
         if (Config.getInstance().stopGameMusicForMobs) {
             Common.soundManager.pauseGameMusic();
         }
@@ -305,8 +276,61 @@ public abstract class PokemonEntityMixin extends Mob implements PokemonEntityInt
             double z = Math.cos((double) (-this.yBodyRot) / 180.0 * Math.PI);
             this.level().addParticle(ParticleTypes.NOTE, this.getX() + x * (double) offset.z + z * (double) offset.x, this.getY() + (double) this.getBbHeight() / 2.0 + (double) offset.y, this.getZ() + z * (double) offset.z - x * (double) offset.x, x * 5.0, 0.0, z * 5.0);
         }
-
     }
+
+    protected void initInstrument() {
+        if (tickCount % 5 == 0) {
+            tryToPickInstrument();
+            Pokemon p = getPokemon();
+            if (p.getFriendship() >= GainFriendshipFromMelodies.commonConfig().required_friendship_to_play) {
+                if (p.heldItem().getItem() instanceof InstrumentItem item) {
+                    var rl = BuiltInRegistries.ITEM.getKey(item);
+                    setInstrumentName(rl.getPath());
+                    return;
+                }
+            }
+            for (String rule : GainFriendshipFromMelodies.commonConfig().distribution_rules) {
+                var tmp = PokemonChecker.match(rule, getPokemon());//TODO Rewrite it with entityData
+                if (!Objects.equals(tmp, "")) {
+                    setInstrumentName(tmp);
+                    break;
+                }
+            }
+        }
+    }
+
+    protected void tryToPickInstrument() {
+        if (GainFriendshipFromMelodies.commonConfig().can_pick_instrument) {
+            Pokemon pokemon = getPokemon();
+            if (pokemon.heldItem().isEmpty() && pokemon.isPlayerOwned()) {
+                Vec3i pickUpReach = getPickupReach();
+                var itemList = this.level().getEntitiesOfClass(ItemEntity.class, this.getBoundingBox().inflate(pickUpReach.getX(), pickUpReach.getY(), pickUpReach.getZ()));
+                var it = itemList.iterator();
+                while (true) {
+                    ItemEntity itementity;
+                    do {
+                        if (!it.hasNext()) {
+                            return;
+                        }
+                        itementity = it.next();
+                    } while (itementity.getOwner() != null && itementity.getOwner().getUUID().equals(this.getUUID()));
+                    if (!itementity.isRemoved() && !itementity.getItem().isEmpty() && itementity.getItem().getItem() instanceof InstrumentItem) {
+                        pickInstrument(itementity);
+                    }
+                }
+            }
+        }
+    }
+
+    protected void pickInstrument(ItemEntity itemEntity) {
+        Pokemon pokemon = getPokemon();
+        ItemStack itemStack = itemEntity.getItem();
+        pokemon.swapHeldItem(itemStack.copy(), false);
+        onItemPickup(itemEntity);
+        take(itemEntity, itemStack.getCount());
+        itemEntity.discard();
+    }
+
 
     @Unique
     private int getMusicState() {

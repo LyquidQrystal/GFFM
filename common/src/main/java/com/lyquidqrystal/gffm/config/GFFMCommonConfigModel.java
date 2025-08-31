@@ -20,11 +20,11 @@ public class GFFMCommonConfigModel implements ConfigData {
     @Comment("If you can use the instrument in the offhand to increase the friendship")
     public boolean can_use_offhand_item = true;
     @Comment("Status that can be cured by the music(persistent status only)")
-    public String[] curable_status={
+    public String[] curable_status = {
             "sleep"
     };
     @Comment("Rules to add instrument sound to the Pokemon")
-    public String[] distribution_rules={
+    public String[] distribution_rules = {
             "flute|any|any|any|any|any|grasswhistle|100",
             "vielle|Kricketune|any|any|any|any|any|100",
             "tiny_drum|Snorlax|any|any|any|any|any|100",
@@ -37,4 +37,10 @@ public class GFFMCommonConfigModel implements ConfigData {
             "handpan|Bronzor|any|any|any|any|any|100",
             "ender_bass|Toxtricity|any|any|any|any|any|100"
     };
+    @Comment("If the Pokemon can pick the instrument item")
+    public boolean can_pick_instrument = true;
+    @Comment("If the Pokemon can play the instrument item")
+    public boolean can_play_instrument = true;
+    @Comment("Required friendship for the Pokemon to play the instrument")
+    public int required_friendship_to_play = 100;
 }
