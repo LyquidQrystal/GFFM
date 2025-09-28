@@ -43,4 +43,6 @@ public class GFFMCommonConfigModel implements ConfigData {
     public boolean can_play_instrument = true;
     @Comment("Required friendship for the Pokemon to play the instrument")
     public int required_friendship_to_play = 100;
+    @Comment("If you think there are too many particles around your Pokemon when you are playing music, you can set the minimum interval between the note particle can spawn. The interval is measured in ticks. If the interval is less than 0, the note particle will spawn normally.")
+    public int minimum_interval_between_notes = -1;
 }

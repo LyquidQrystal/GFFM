@@ -7,13 +7,13 @@ import com.lyquidqrystal.gffm.interfaces.PokemonEntityInterface;
 import com.lyquidqrystal.gffm.net.packet.MelodyInfoPacket;
 import com.lyquidqrystal.gffm.utils.ClientUtil;
 import com.lyquidqrystal.gffm.utils.MelodiesUtil;
+import com.lyquidqrystal.gffm.utils.NoteParticleGenerator;
 import com.lyquidqrystal.gffm.utils.PokemonChecker;
 import dev.architectury.networking.NetworkManager;
 import immersive_melodies.Common;
 import immersive_melodies.Config;
 import immersive_melodies.Sounds;
 import immersive_melodies.client.MelodyProgress;
-import immersive_melodies.client.sound.CancelableSoundInstance;
 import immersive_melodies.item.InstrumentItem;
 import immersive_melodies.resources.Melody;
 import immersive_melodies.resources.Note;
@@ -69,6 +69,7 @@ public abstract class PokemonEntityMixin extends Mob implements PokemonEntityInt
     private static final EntityDataAccessor<String> DATA_INSTRUMENT_NAME;
     private static final EntityDataAccessor<Long> MUSIC_PROGRESS;
     private static final EntityDataAccessor<Long> MUSIC_LENGTH;
+    private NoteParticleGenerator noteParticleGenerator;
 
     static {
         DATA_ID_OWNER = SynchedEntityData.defineId(PokemonEntityMixin.class, EntityDataSerializers.INT);
@@ -184,7 +185,6 @@ public abstract class PokemonEntityMixin extends Mob implements PokemonEntityInt
 
     @Override
     public void setMusicProgress(long progress) {
-        //GainFriendshipFromMelodies.LOGGER.info("SIDE TEST");
         entityData.set(MUSIC_PROGRESS, progress);
     }
 
@@ -274,7 +274,10 @@ public abstract class PokemonEntityMixin extends Mob implements PokemonEntityInt
         if (!Common.soundManager.isFirstPerson(this)) {
             double x = Math.sin((double) (-this.yBodyRot) / 180.0 * Math.PI);
             double z = Math.cos((double) (-this.yBodyRot) / 180.0 * Math.PI);
-            this.level().addParticle(ParticleTypes.NOTE, this.getX() + x * (double) offset.z + z * (double) offset.x, this.getY() + (double) this.getBbHeight() / 2.0 + (double) offset.y, this.getZ() + z * (double) offset.z - x * (double) offset.x, x * 5.0, 0.0, z * 5.0);
+            if (noteParticleGenerator == null) {
+                noteParticleGenerator = new NoteParticleGenerator((PokemonEntity) (Object) this);
+            }
+            noteParticleGenerator.onNewNote(time, offset, x, z);
         }
     }
 
@@ -282,7 +285,7 @@ public abstract class PokemonEntityMixin extends Mob implements PokemonEntityInt
         if (tickCount % 5 == 0) {
             tryToPickInstrument();
             Pokemon p = getPokemon();
-            if (p.getFriendship() >= GainFriendshipFromMelodies.commonConfig().required_friendship_to_play) {
+            if (GainFriendshipFromMelodies.commonConfig().can_play_instrument && p.getFriendship() >= GainFriendshipFromMelodies.commonConfig().required_friendship_to_play) {
                 if (p.heldItem().getItem() instanceof InstrumentItem item) {
                     var rl = BuiltInRegistries.ITEM.getKey(item);
                     setInstrumentName(rl.getPath());
@@ -290,7 +293,7 @@ public abstract class PokemonEntityMixin extends Mob implements PokemonEntityInt
                 }
             }
             for (String rule : GainFriendshipFromMelodies.commonConfig().distribution_rules) {
-                var tmp = PokemonChecker.match(rule, getPokemon());//TODO Rewrite it with entityData
+                var tmp = PokemonChecker.match(rule, getPokemon());
                 if (!Objects.equals(tmp, "")) {
                     setInstrumentName(tmp);
                     break;
@@ -330,7 +333,6 @@ public abstract class PokemonEntityMixin extends Mob implements PokemonEntityInt
         take(itemEntity, itemStack.getCount());
         itemEntity.discard();
     }
-
 
     @Unique
     private int getMusicState() {
