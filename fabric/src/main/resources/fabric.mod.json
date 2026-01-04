@@ -31,7 +31,7 @@
     "java": ">=21",
     "fabric-api": "*",
     "immersive_melodies": ">=0.6.0",
-    "cobblemon": ">=1.6.1"
+    "cobblemon": ">=1.7.0"
   },
   "suggests": {
     "another-mod": "*"

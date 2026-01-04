@@ -30,7 +30,7 @@ side = "BOTH"
 [[dependencies.gain_friendship_from_melodies]]
 modId = "cobblemon"
 type = "required"
-versionRange = "[1.6.0,)"
+versionRange = "[1.7.0,)"
 ordering = "NONE"
 side = "BOTH"
 

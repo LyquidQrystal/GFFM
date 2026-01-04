@@ -47,16 +47,13 @@ import java.util.Objects;
 
 @Mixin(PokemonEntity.class)
 public abstract class PokemonEntityMixin extends Mob implements PokemonEntityInterface {
-    @Shadow
+    @Shadow(remap = false)
     public abstract Pokemon getPokemon();
 
-    @Shadow
+    @Shadow(remap = false)
     public abstract void cry();
 
-    @Shadow
-    public abstract void playAmbientSound();
-
-    @Shadow
+    @Shadow(remap = false)
     public abstract boolean isBattling();
 
     @Unique
@@ -328,7 +325,7 @@ public abstract class PokemonEntityMixin extends Mob implements PokemonEntityInt
     protected void pickInstrument(ItemEntity itemEntity) {
         Pokemon pokemon = getPokemon();
         ItemStack itemStack = itemEntity.getItem();
-        pokemon.swapHeldItem(itemStack.copy(), false);
+        pokemon.swapHeldItem(itemStack.copy(), false, true);
         onItemPickup(itemEntity);
         take(itemEntity, itemStack.getCount());
         itemEntity.discard();

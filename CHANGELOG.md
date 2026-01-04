@@ -1,3 +1,9 @@
+# V0.5.0:
+## New Features:
+* Cobblemon 1.7 support
+## Changes:
+* Slightly adjusted the particle position.
+
 # 0.4.0
 ## New Features:
 ## Bug Fixes:
