@@ -239,6 +239,9 @@ public abstract class PokemonEntityMixin extends Mob implements PokemonEntityInt
                             break;
                         }
                         if (enabledTracks.isEmpty() || enabledTracks.contains(track)) {
+                            if (progress.getTime() - note.getTime() > 500) {
+                                continue;
+                            }
                             playNote(note, progress.getTime(), instrumentSustain, offset, sound);
                         }
                         if (i == notes.size() - 1) {
@@ -266,7 +269,7 @@ public abstract class PokemonEntityMixin extends Mob implements PokemonEntityInt
         volume = volume * (1.0F - factor) + adjustedVolume * factor;
         Common.soundManager.playSound(getX(), getY(), getZ(), sound.get(octave), SoundSource.NEUTRAL, volume, pitch, length, sustain, (long) note.getTime() - time, this);
         if (Config.getInstance().stopGameMusicForMobs) {
-            Common.soundManager.pauseGameMusic();
+            Common.soundManager.suppressGameMusic();
         }
         if (!Common.soundManager.isFirstPerson(this)) {
             double x = Math.sin((double) (-this.yBodyRot) / 180.0 * Math.PI);

@@ -1,3 +1,8 @@
+# V0.5.1:
+## Bug Fixes:
+* Fixed the bug that the game will crash if the Pokemon is trying to imitate the player.
+* Fixed the bug that a noise will be heard if you sent out a Pokemon that can imitate the player when the player is playing music.
+
 # V0.5.0:
 ## New Features:
 * Cobblemon 1.7 support

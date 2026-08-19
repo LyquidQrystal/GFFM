@@ -93,17 +93,17 @@ public class MelodiesUtil {
             return null;
         }
         Item item = switch (name) {
-            case "bagpipe" -> Items.BAGPIPE;
-            case "didgeridoo" -> Items.DIDGERIDOO;
-            case "flute" -> Items.FLUTE;
-            case "lute" -> Items.LUTE;
-            case "piano" -> Items.PIANO;
-            case "triangle" -> Items.TRIANGLE;
-            case "trumpet" -> Items.TRUMPET;
-            case "tiny_drum" -> Items.TINY_DRUM;
-            case "vielle" -> Items.VIELLE;
-            case "ender_bass" -> Items.ENDER_BASS;
-            case "handpan" -> Items.HANDPAN;
+            case "bagpipe" -> Items.BAGPIPE.get();
+            case "didgeridoo" -> Items.DIDGERIDOO.get();
+            case "flute" -> Items.FLUTE.get();
+            case "lute" -> Items.LUTE.get();
+            case "piano" -> Items.PIANO.get();
+            case "triangle" -> Items.TRIANGLE.get();
+            case "trumpet" -> Items.TRUMPET.get();
+            case "tiny_drum" -> Items.TINY_DRUM.get();
+            case "vielle" -> Items.VIELLE.get();
+            case "ender_bass" -> Items.ENDER_BASS.get();
+            case "handpan" -> Items.HANDPAN.get();
             default -> null;
         };
         return (InstrumentItem) item;
